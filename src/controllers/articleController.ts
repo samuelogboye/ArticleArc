@@ -18,7 +18,7 @@ export const createArticle = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const { title, content, author, summary, tags = [] } = value;
+    const { title, content, summary, tags = [] } = value;
     const user = (req as AuthRequest).user;
 
     if (!user) {
@@ -28,6 +28,9 @@ export const createArticle = async (req: Request, res: Response): Promise<void> 
       } as ApiResponse);
       return;
     }
+
+    const author = user.username;
+
 
     let finalSummary = summary;
 
