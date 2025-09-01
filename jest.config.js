@@ -1,20 +1,26 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src', '<rootDir>/tests'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
-  transform: {
-    '^.+\\.ts$': 'ts-jest',
-  },
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
-    '!src/app.ts',
+    '!src/index.ts',
+    '!src/config/**',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  moduleNameMapping: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+  testTimeout: 60000, // Increase timeout for MongoDB Memory Server
+  detectOpenHandles: true,
+  forceExit: true,
+  clearMocks: true,
+  restoreMocks: true,
+  resetModules: true,
+  // Fix the moduleNameMapping issue - correct property name is moduleNameMapper
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1'
   },
+  // Set environment variables for tests
+  setupFiles: ['<rootDir>/tests/jest.env.ts'],
 };
