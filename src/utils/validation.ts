@@ -41,10 +41,6 @@ export const articleValidation = Joi.object({
     .trim()
     .min(50)
     .required(),
-  author: Joi.string()
-    .trim()
-    .max(100)
-    .required(),
   summary: Joi.string()
     .trim()
     .max(500)
