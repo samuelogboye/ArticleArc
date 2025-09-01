@@ -35,7 +35,7 @@ export const authenticate = async (
   } catch (error) {
     res.status(401).json({
       success: false,
-      message: 'Invalid or expired token',
+      message: 'Invalid token - user not found',
     });
   }
 };
