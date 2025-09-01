@@ -6,6 +6,12 @@ class GeminiService {
   private model: any = null;
 
   constructor() {
+    // Use mock for testing
+    if (process.env.NODE_ENV === 'test' && process.env.USE_MOCK_GEMINI === 'true') {
+      // Mock service - do not initialize actual Gemini
+      return;
+    }
+
     if (config.ai.geminiApiKey) {
       this.genAI = new GoogleGenerativeAI(config.ai.geminiApiKey);
       this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
@@ -13,10 +19,15 @@ class GeminiService {
   }
 
   public isAvailable(): boolean {
-    return this.model !== null;
+    return this.model !== null || (process.env.NODE_ENV === 'test' && process.env.USE_MOCK_GEMINI === 'true');
   }
 
   public async generateSummary(content: string, title?: string): Promise<string> {
+    // Return mock summary for tests
+    if (process.env.NODE_ENV === 'test' && process.env.USE_MOCK_GEMINI === 'true') {
+      return `Mock summary for: ${title || 'article'}. Content: ${content.substring(0, 50)}...`;
+    }
+
     if (!this.isAvailable()) {
       throw new Error('Gemini AI service is not available - API key not configured');
     }
