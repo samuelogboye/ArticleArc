@@ -8,7 +8,7 @@ class GeminiService {
   constructor() {
     if (config.ai.geminiApiKey) {
       this.genAI = new GoogleGenerativeAI(config.ai.geminiApiKey);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     }
   }
 
