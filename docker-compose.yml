@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: articlearc-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: articlearc
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - articlearc-network
+
+  app:
+    build: .
+    container_name: articlearc-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:password@mongodb:27017/articlearc?authSource=admin
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    depends_on:
+      - mongodb
+    networks:
+      - articlearc-network
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  mongodb_data:
+
+networks:
+  articlearc-network:
+    driver: bridge
