@@ -21,24 +21,26 @@ export const securityMiddleware = helmet({
 
 export const rateLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.maxRequests,
+  max: process.env.NODE_ENV === 'test' ? 10000 : config.rateLimit.maxRequests, // High limit for tests
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.',
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: process.env.NODE_ENV === 'test' ? () => true : undefined, // Skip rate limiting in tests
 });
 
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts
+  max: process.env.NODE_ENV === 'test' ? 10000 : 5, // High limit for tests
   message: {
     success: false,
     message: 'Too many authentication attempts, please try again later.',
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: process.env.NODE_ENV === 'test' ? () => true : undefined, // Skip rate limiting in tests
 });
 
 export const sanitizeInput = (req: Request, res: Response, next: NextFunction): void => {
