@@ -4,7 +4,7 @@ import { app } from '../../src/app';
 import { User } from '../../src/models/User';
 
 describe('Authentication', () => {
-  describe('POST /auth/register', () => {
+  describe('POST /api/v1/auth/register', () => {
     it('should register a new user', async () => {
       const userData = {
         username: 'testuser',
@@ -14,7 +14,7 @@ describe('Authentication', () => {
       };
 
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send(userData)
         .expect(201);
 
@@ -36,7 +36,7 @@ describe('Authentication', () => {
       };
 
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send(userData)
         .expect(400);
 
@@ -52,7 +52,7 @@ describe('Authentication', () => {
       };
 
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send(userData)
         .expect(400);
 
@@ -67,7 +67,7 @@ describe('Authentication', () => {
       };
 
       await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send(userData)
         .expect(201);
 
@@ -78,7 +78,7 @@ describe('Authentication', () => {
       };
 
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send(duplicateData)
         .expect(409);
 
@@ -87,7 +87,7 @@ describe('Authentication', () => {
     });
   });
 
-  describe('POST /auth/login', () => {
+  describe('POST /api/v1/auth/login', () => {
     beforeEach(async () => {
       const userData = {
         username: 'testuser',
@@ -96,7 +96,7 @@ describe('Authentication', () => {
       };
 
       await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send(userData);
     });
 
@@ -107,7 +107,7 @@ describe('Authentication', () => {
       };
 
       const response = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send(loginData)
         .expect(200);
 
@@ -123,7 +123,7 @@ describe('Authentication', () => {
       };
 
       const response = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send(loginData)
         .expect(200);
 
@@ -137,7 +137,7 @@ describe('Authentication', () => {
       };
 
       const response = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send(loginData)
         .expect(401);
 
@@ -152,7 +152,7 @@ describe('Authentication', () => {
       };
 
       const response = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send(loginData)
         .expect(401);
 
