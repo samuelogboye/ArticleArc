@@ -1,10 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import swaggerUi from 'swagger-ui-express';
 import { config, validateConfig } from './config';
 import { connectDatabase } from './config/database';
 import { securityMiddleware, rateLimiter, sanitizeInput } from './middleware/security';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { specs } from './config/swagger';
 import routes from './routes';
 
 validateConfig();
@@ -21,6 +23,31 @@ app.use(morgan(config.server.nodeEnv === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(sanitizeInput);
+
+// Swagger API Documentation
+const swaggerOptions = {
+  customSiteTitle: "ArticleArc API Documentation",
+  customfavIcon: "/assets/favicon.ico",
+  customCss: `
+    .topbar-wrapper .link { content: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDIxTDEyIDNNOSAxOUw5IDE5TDE1IDE5TDE1IDE5TTE3LjA3MTEgNi45Mjg5M0wyMC40ODUzIDMuNTE0NzJNOSAyMUg5VjNIOVYyMUg5Wk05LjAwMDAxIDlIMTUuMDAwMVY5SDE5VjE5SDE1VjlIOUg5LjAwMDAxWiIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K'); }
+    .swagger-ui .topbar { background-color: #2c3e50; }
+    .swagger-ui .btn.authorize svg { fill: #fff; }
+    .swagger-ui .btn.authorize { background-color: #3498db; border-color: #3498db; }
+    .swagger-ui .btn.authorize:hover { background-color: #2980b9; border-color: #2980b9; }
+  `,
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    filter: true,
+    tryItOutEnabled: true,
+    supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+    docExpansion: 'list',
+    defaultModelsExpandDepth: 2,
+    defaultModelExpandDepth: 2,
+  }
+};
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
 app.use('/api/v1', routes);
 
