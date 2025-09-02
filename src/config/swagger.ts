@@ -1,6 +1,14 @@
 import swaggerJSDoc from 'swagger-jsdoc';
 import { config } from './index';
 
+// Dynamic server URL based on environment
+const getServerUrl = (): string => {
+  if (config.server.nodeEnv === 'production') {
+    return process.env.API_BASE_URL || 'https://articlearcapi.samuelogboye.com';
+  }
+  return `http://localhost:${config.server.port}`;
+};
+
 const options: swaggerJSDoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -19,12 +27,8 @@ const options: swaggerJSDoc.Options = {
     },
     servers: [
       {
-        url: `http://localhost:${config.server.port}`,
-        description: 'Development server',
-      },
-      {
-        url: 'https://articlearcapi.samuelogboye.com',
-        description: 'Production server',
+        url: getServerUrl(),
+        description: config.server.nodeEnv === 'production' ? 'Production server' : 'Development server',
       },
     ],
     components: {
