@@ -8,8 +8,13 @@ export const securityMiddleware = helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Swagger UI needs eval for runtime
+      imgSrc: ["'self'", "data:", "https:", "blob:"], // Swagger UI uses data URIs and blobs
+      fontSrc: ["'self'", "https:", "data:"],
+      connectSrc: ["'self'", "https:", "http:"], // Allow API calls from Swagger UI
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
     },
   },
   hsts: {
@@ -17,6 +22,7 @@ export const securityMiddleware = helmet({
     includeSubDomains: true,
     preload: true,
   },
+  crossOriginEmbedderPolicy: false, // Disable for Swagger UI compatibility
 });
 
 export const rateLimiter = rateLimit({
