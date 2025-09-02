@@ -10,3 +10,4 @@ delete process.env.MONGODB_TEST_URI;
 
 // Set AI service to mock mode for tests
 process.env.GEMINI_API_KEY = 'test-key-will-be-mocked';
+process.env.USE_MOCK_GEMINI = 'true';
