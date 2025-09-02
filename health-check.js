@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 const https = require('https');
 const http = require('http');
 
@@ -17,12 +16,33 @@ const checkEndpoint = (url) => {
       
       res.on('end', () => {
         const responseTime = Date.now() - startTime;
+        let parsedData = null;
+        
+        // Only try to parse as JSON if the content-type suggests it's JSON
+        const contentType = res.headers['content-type'] || '';
+        if (contentType.includes('application/json') && data.trim()) {
+          try {
+            parsedData = JSON.parse(data);
+          } catch (parseError) {
+            // If JSON parsing fails, just store the raw data
+            parsedData = { raw: data.substring(0, 100) + (data.length > 100 ? '...' : '') };
+          }
+        } else if (data.trim()) {
+          // For non-JSON responses, store a preview of the content
+          parsedData = { 
+            contentType: contentType,
+            preview: data.substring(0, 100) + (data.length > 100 ? '...' : ''),
+            size: data.length
+          };
+        }
+        
         resolve({
           url,
           status: res.statusCode,
           responseTime: `${responseTime}ms`,
           success: res.statusCode >= 200 && res.statusCode < 300,
-          data: data ? JSON.parse(data) : null
+          data: parsedData,
+          contentType: contentType
         });
       });
     });
@@ -55,12 +75,11 @@ const runHealthCheck = async () => {
   console.log('🔍 ArticleArc API Health Check\n');
   
   const baseUrl = process.env.API_URL || 'https://articlearcapi.samuelogboye.com';
-  
   const endpoints = [
     '/',
     '/api/v1/health',
     '/api/v1/swagger-spec',
-    '/api-docs'
+    '/api-docs/'
   ];
   
   console.log(`Testing base URL: ${baseUrl}\n`);
@@ -71,21 +90,31 @@ const runHealthCheck = async () => {
     
     const statusIcon = result.success ? '✅' : '❌';
     console.log(`${statusIcon} ${endpoint}`);
-    console.log(`   Status: ${result.status} | Time: ${result.responseTime}`);
+    console.log(`  Status: ${result.status} | Time: ${result.responseTime}`);
+    
+    if (result.contentType) {
+      console.log(`  Content-Type: ${result.contentType}`);
+    }
     
     if (result.success && result.data) {
-      console.log(`   Message: ${result.data.message || 'N/A'}`);
+      if (result.data.message) {
+        console.log(`  Message: ${result.data.message}`);
+      } else if (result.data.preview) {
+        console.log(`  Content Preview: ${result.data.preview}`);
+        console.log(`  Size: ${result.data.size} bytes`);
+      }
     } else if (result.error) {
-      console.log(`   Error: ${result.error}`);
+      console.log(`  Error: ${result.error}`);
     }
+    
     console.log('');
   }
   
   console.log('💡 Troubleshooting tips:');
-  console.log('   - Ensure server is running and accessible');
-  console.log('   - Check firewall/security group settings');
-  console.log('   - Verify environment variables are set');
-  console.log('   - Check server logs for errors');
+  console.log('  - Ensure server is running and accessible');
+  console.log('  - Check firewall/security group settings');
+  console.log('  - Verify environment variables are set');
+  console.log('  - Check server logs for errors');
 };
 
 if (require.main === module) {
