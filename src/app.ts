@@ -4,7 +4,7 @@ import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import { config, validateConfig } from './config';
 import { connectDatabase } from './config/database';
-import { securityMiddleware, rateLimiter, sanitizeInput } from './middleware/security';
+import { securityMiddleware, apiSecurityMiddleware, rateLimiter, sanitizeInput, additionalSecurityHeaders } from './middleware/security';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { specs } from './config/swagger';
 import routes from './routes';
@@ -13,6 +13,10 @@ validateConfig();
 
 const app = express();
 
+// Disable Express server signature
+app.disable('x-powered-by');
+
+app.use(additionalSecurityHeaders);
 app.use(securityMiddleware);
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
@@ -48,12 +52,12 @@ const swaggerOptions = {
     url: undefined, // Let Swagger UI use the current domain
     dom_id: '#swagger-ui',
     deepLinking: true,
-    presets: [
-      // @ts-ignore
-      swaggerUi.SwaggerUIBundle.presets.apis,
-      // @ts-ignore
-      swaggerUi.SwaggerUIStandalonePreset
-    ],
+    // presets: [
+    //   // @ts-ignore
+    //   swaggerUi.SwaggerUIBundle.presets.apis,
+    //   // @ts-ignore
+    //   swaggerUi.SwaggerUIStandalonePreset
+    // ],
     layout: "StandaloneLayout"
   }
 };
@@ -68,6 +72,26 @@ app.use('/api-docs', (req, res, next) => {
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
+// Root route handler
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'ArticleArc API Server',
+    version: '1.0.0',
+    environment: config.server.nodeEnv,
+    documentation: '/api-docs',
+    apiBase: '/api/v1',
+    endpoints: {
+      health: '/api/v1/health',
+      auth: '/api/v1/auth',
+      articles: '/api/v1/articles', 
+      interactions: '/api/v1/interactions',
+      users: '/api/v1/users',
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.use('/api/v1', routes);
 
 app.use(notFoundHandler);
@@ -77,10 +101,35 @@ const startServer = async (): Promise<void> => {
   try {
     await connectDatabase();
     
-    const server = app.listen(config.server.port, () => {
+    const server = app.listen(config.server.port, '0.0.0.0', () => {
       console.log(`🚀 ArticleArc server running on port ${config.server.port}`);
       console.log(`📦 Environment: ${config.server.nodeEnv}`);
       console.log(`🤖 AI Service: ${config.ai.geminiApiKey ? 'Enabled' : 'Disabled (fallback mode)'}`);
+      console.log(`📚 API Documentation: http://localhost:${config.server.port}/api-docs`);
+      
+      // Additional production debugging info
+      if (config.server.nodeEnv === 'production') {
+        console.log(`🌐 Production URL: https://articlearcapi.samuelogboye.com`);
+        console.log(`📋 Available routes:`);
+        console.log(`   - GET  /                  (Root endpoint)`);
+        console.log(`   - GET  /api/v1/health     (Health check)`);
+        console.log(`   - GET  /api-docs          (API Documentation)`);
+        console.log(`   - POST /api/v1/auth/register`);
+        console.log(`   - POST /api/v1/auth/login`);
+        console.log(`   - GET  /api/v1/articles`);
+        console.log(`   - POST /api/v1/articles`);
+      }
+    });
+
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${config.server.port} is already in use`);
+      } else if (error.code === 'EACCES') {
+        console.error(`❌ Permission denied to bind to port ${config.server.port}`);
+      } else {
+        console.error(`❌ Server error:`, error);
+      }
+      process.exit(1);
     });
 
     const gracefulShutdown = (): void => {
