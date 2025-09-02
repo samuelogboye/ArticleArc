@@ -53,4 +53,10 @@ router.get('/health', (req, res) => {
   });
 });
 
+// Swagger spec endpoint for debugging
+router.get('/swagger-spec', (req, res) => {
+  const { specs } = require('../config/swagger');
+  res.status(200).json(specs);
+});
+
 export default router;
