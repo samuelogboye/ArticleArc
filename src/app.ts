@@ -63,14 +63,14 @@ const swaggerOptions = {
 };
 
 // Disable security headers for Swagger UI to work properly
-app.use('/api-docs', (req, res, next) => {
+app.use('/api-docs/', (req, res, next) => {
   res.removeHeader('Content-Security-Policy');
   res.removeHeader('X-Content-Security-Policy'); 
   res.removeHeader('X-WebKit-CSP');
   next();
 });
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
+app.use('/api-docs/', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
 // Root route handler
 app.get('/', (req, res) => {
