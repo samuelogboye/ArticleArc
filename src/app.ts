@@ -44,8 +44,27 @@ const swaggerOptions = {
     docExpansion: 'list',
     defaultModelsExpandDepth: 2,
     defaultModelExpandDepth: 2,
+    validatorUrl: null, // Disable validator for production
+    url: undefined, // Let Swagger UI use the current domain
+    dom_id: '#swagger-ui',
+    deepLinking: true,
+    presets: [
+      // @ts-ignore
+      swaggerUi.SwaggerUIBundle.presets.apis,
+      // @ts-ignore
+      swaggerUi.SwaggerUIStandalonePreset
+    ],
+    layout: "StandaloneLayout"
   }
 };
+
+// Disable security headers for Swagger UI to work properly
+app.use('/api-docs', (req, res, next) => {
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('X-Content-Security-Policy'); 
+  res.removeHeader('X-WebKit-CSP');
+  next();
+});
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
 
