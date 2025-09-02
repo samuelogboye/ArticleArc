@@ -3,15 +3,68 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { config } from '../config';
 
+// Additional security headers middleware
+export const additionalSecurityHeaders = (req: Request, res: Response, next: NextFunction): void => {
+  // Remove server signature
+  res.removeHeader('X-Powered-By');
+  res.removeHeader('Server');
+  
+  // Set Cache-Control for API responses
+  if (req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  
+  // Set additional security headers
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+  
+  // Permissions Policy (manually set since helmet might not support it)
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), fullscreen=(self), payment=(), usb=()');
+  
+  // Additional security headers
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  
+  next();
+};
+
+// Secure CSP for API endpoints (stricter)
+export const apiSecurityMiddleware = helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      scriptSrc: ["'none'"],
+      styleSrc: ["'none'"],
+      imgSrc: ["'none'"],
+      connectSrc: ["'none'"],
+      fontSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'none'"],
+      frameSrc: ["'none'"],
+      baseUri: ["'none'"],
+      formAction: ["'none'"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  noSniff: true,
+  frameguard: { action: 'deny' },
+  referrerPolicy: { policy: 'no-referrer' },
+});
+
+// Relaxed CSP for Swagger UI (only for /api-docs)
 export const securityMiddleware = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Swagger UI needs eval for runtime
-      imgSrc: ["'self'", "data:", "https:", "blob:"], // Swagger UI uses data URIs and blobs
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
       fontSrc: ["'self'", "https:", "data:"],
-      connectSrc: ["'self'", "https:", "http:"], // Allow API calls from Swagger UI
+      connectSrc: ["'self'", "https:", "http:"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
@@ -22,7 +75,10 @@ export const securityMiddleware = helmet({
     includeSubDomains: true,
     preload: true,
   },
-  crossOriginEmbedderPolicy: false, // Disable for Swagger UI compatibility
+  crossOriginEmbedderPolicy: false,
+  noSniff: true,
+  frameguard: { action: 'sameorigin' },
+  referrerPolicy: { policy: 'no-referrer' },
 });
 
 export const rateLimiter = rateLimit({
