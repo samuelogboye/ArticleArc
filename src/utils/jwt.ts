@@ -12,7 +12,7 @@ export const verifyToken = (token: string): JWTPayload => {
   try {
     return jwt.verify(token, config.jwt.secret as string) as JWTPayload;
   } catch (error) {
-    throw new Error('Invalid or expired token');
+    throw new Error('Invalid token - user not found');
   }
 };
 
