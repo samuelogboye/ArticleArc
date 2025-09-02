@@ -6,6 +6,24 @@ import interactionRoutes from './interactions';
 
 const router = Router();
 
+// Root endpoint for basic API info
+router.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Welcome to ArticleArc API',
+    version: '1.0.0',
+    documentation: '/api-docs',
+    endpoints: {
+      health: '/api/v1/health',
+      auth: '/api/v1/auth',
+      articles: '/api/v1/articles',
+      interactions: '/api/v1/interactions',
+      users: '/api/v1/users',
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
+
 router.use('/auth', authRoutes);
 router.use('/articles', articleRoutes);
 router.use('/users', userRoutes);
