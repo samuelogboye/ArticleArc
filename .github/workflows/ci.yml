@@ -36,10 +36,10 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             if [ ! -d "/home/${{ secrets.SERVER_USER }}/articlearc" ]; then
-              git clone git@github.com:${{ github.repository }} articlearc
+              git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git articlearc
             fi
             cd articlearc
             git fetch --all
             git reset --hard origin/main
-            docker compose down -v
-            docker compose up --build -d
+            docker-compose down -v
+            docker-compose up --build -d
