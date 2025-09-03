@@ -389,6 +389,53 @@ export const manualSwaggerSpec = {
       },
     },
     '/api/v1/interactions': {
+      get: {
+        summary: 'Get user interactions with pagination and filtering',
+        tags: ['Interactions'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 }, description: 'Page number', example: 1 },
+          { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 }, description: 'Items per page', example: 10 },
+          { name: 'interactionType', in: 'query', schema: { type: 'string', enum: ['view', 'like', 'share'] }, description: 'Filter by interaction type', example: 'like' },
+          { name: 'articleId', in: 'query', schema: { type: 'string', pattern: '^[0-9a-fA-F]{24}$' }, description: 'Filter by article ID', example: '507f1f77bcf86cd799439012' }
+        ],
+        responses: {
+          '200': {
+            description: 'Interactions retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Interactions retrieved successfully' },
+                    data: { type: 'array', items: { $ref: '#/components/schemas/Interaction' } },
+                    pagination: {
+                      type: 'object',
+                      properties: {
+                        page: { type: 'integer', example: 1 },
+                        limit: { type: 'integer', example: 10 },
+                        totalCount: { type: 'integer', example: 47 },
+                        totalPages: { type: 'integer', example: 5 }
+                      }
+                    },
+                    stats: {
+                      type: 'object',
+                      properties: {
+                        totalViews: { type: 'integer', example: 32 },
+                        totalLikes: { type: 'integer', example: 12 },
+                        totalShares: { type: 'integer', example: 3 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '400': { description: 'Invalid query parameters', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          '401': { description: 'Authentication required', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } }
+        }
+      },
       post: {
         summary: 'Create a user interaction with an article',
         tags: ['Interactions'],

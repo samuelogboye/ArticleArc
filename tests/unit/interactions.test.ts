@@ -304,6 +304,298 @@ describe('Interactions', () => {
     });
   });
 
+  describe('GET /api/v1/interactions', () => {
+    beforeEach(async () => {
+      // Create multiple interactions for testing
+      await request(app)
+        .post('/api/v1/interactions')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          articleId,
+          interactionType: 'view',
+        });
+
+      await request(app)
+        .post('/api/v1/interactions')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          articleId,
+          interactionType: 'like',
+        });
+
+      await request(app)
+        .post('/api/v1/interactions')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          articleId,
+          interactionType: 'share',
+        });
+
+      // Create additional article and interactions for testing
+      const secondArticleResponse = await request(app)
+        .post('/api/v1/articles')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          title: 'Second Test Article',
+          content: 'This is another test article for interaction testing purposes.',
+          tags: ['test2'],
+        });
+
+      const secondArticleId = secondArticleResponse.body.data._id;
+
+      await request(app)
+        .post('/api/v1/interactions')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          articleId: secondArticleId,
+          interactionType: 'view',
+        });
+    });
+
+    it('should get user interactions with default pagination', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Interactions retrieved successfully');
+      expect(response.body.data).toBeInstanceOf(Array);
+      expect(response.body.data.length).toBe(4); // 3 for first article + 1 for second article
+      expect(response.body.pagination).toBeDefined();
+      expect(response.body.pagination.page).toBe(1);
+      expect(response.body.pagination.limit).toBe(10);
+      expect(response.body.pagination.totalCount).toBe(4);
+      expect(response.body.stats).toBeDefined();
+      expect(response.body.stats.totalViews).toBe(2);
+      expect(response.body.stats.totalLikes).toBe(1);
+      expect(response.body.stats.totalShares).toBe(1);
+    });
+
+    it('should return interactions sorted by creation date (newest first)', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      const interactions = response.body.data;
+      for (let i = 1; i < interactions.length; i++) {
+        const current = new Date(interactions[i].createdAt);
+        const previous = new Date(interactions[i - 1].createdAt);
+        expect(current.getTime()).toBeLessThanOrEqual(previous.getTime());
+      }
+    });
+
+    it('should include populated article data', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      const interaction = response.body.data[0];
+      expect(interaction.articleId).toBeDefined();
+      expect(interaction.articleId._id).toBeDefined();
+      expect(interaction.articleId.title).toBeDefined();
+      expect(interaction.articleId.author).toBeDefined();
+    });
+
+    it('should filter interactions by interaction type', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions?interactionType=like')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.data).toBeInstanceOf(Array);
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0].interactionType).toBe('like');
+    });
+
+    it('should filter interactions by article ID', async () => {
+      const response = await request(app)
+        .get(`/api/v1/interactions?articleId=${articleId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.data).toBeInstanceOf(Array);
+      expect(response.body.data.length).toBe(3); // view, like, share for first article
+      response.body.data.forEach((interaction: any) => {
+        expect(interaction.articleId._id).toBe(articleId);
+      });
+    });
+
+    it('should support pagination with page and limit', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions?page=1&limit=2')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.data.length).toBe(2);
+      expect(response.body.pagination.page).toBe(1);
+      expect(response.body.pagination.limit).toBe(2);
+      expect(response.body.pagination.totalCount).toBe(4);
+      expect(response.body.pagination.totalPages).toBe(2);
+    });
+
+    it('should handle second page of results', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions?page=2&limit=2')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.data.length).toBe(2);
+      expect(response.body.pagination.page).toBe(2);
+      expect(response.body.pagination.limit).toBe(2);
+    });
+
+    it('should return empty array for page beyond available data', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions?page=10&limit=2')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.data.length).toBe(0);
+      expect(response.body.pagination.page).toBe(10);
+      expect(response.body.pagination.totalCount).toBe(4);
+    });
+
+    it('should combine filters (interactionType and articleId)', async () => {
+      const response = await request(app)
+        .get(`/api/v1/interactions?articleId=${articleId}&interactionType=view`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0].interactionType).toBe('view');
+      expect(response.body.data[0].articleId._id).toBe(articleId);
+    });
+
+    it('should only return interactions for authenticated user', async () => {
+      // Create interaction for second user
+      await request(app)
+        .post('/api/v1/interactions')
+        .set('Authorization', `Bearer ${secondUserToken}`)
+        .send({
+          articleId,
+          interactionType: 'like',
+        });
+
+      // First user should not see second user's interactions
+      const response = await request(app)
+        .get('/api/v1/interactions')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      response.body.data.forEach((interaction: any) => {
+        // Note: userId is not populated in GET response for privacy
+        // The filter is applied server-side
+        expect(interaction.userId).toBeUndefined();
+      });
+      expect(response.body.data.length).toBe(4); // Only first user's interactions
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions')
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Access token is required');
+    });
+
+    it('should validate page parameter', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions?page=0')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Invalid query parameters');
+    });
+
+    it('should validate limit parameter', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions?limit=101')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Invalid query parameters');
+    });
+
+    it('should validate interaction type filter', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions?interactionType=invalid')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Invalid query parameters');
+      expect(response.body.error).toContain('interactionType');
+    });
+
+    it('should validate article ID format', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions?articleId=invalid-id')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Invalid query parameters');
+      expect(response.body.error).toBe('Invalid article ID format');
+    });
+
+    it('should return correct statistics', async () => {
+      const response = await request(app)
+        .get('/api/v1/interactions')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.stats).toBeDefined();
+      expect(typeof response.body.stats.totalViews).toBe('number');
+      expect(typeof response.body.stats.totalLikes).toBe('number');
+      expect(typeof response.body.stats.totalShares).toBe('number');
+      expect(response.body.stats.totalViews + response.body.stats.totalLikes + response.body.stats.totalShares)
+        .toBe(response.body.pagination.totalCount);
+    });
+
+    it('should return empty results for non-existent article ID', async () => {
+      const nonExistentId = new mongoose.Types.ObjectId();
+      const response = await request(app)
+        .get(`/api/v1/interactions?articleId=${nonExistentId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.data.length).toBe(0);
+      expect(response.body.pagination.totalCount).toBe(0);
+    });
+
+    it('should handle user with no interactions', async () => {
+      // Create a new user with no interactions
+      const newUserData = {
+        username: 'newuser',
+        email: 'newuser@example.com',
+        password: 'Test123',
+      };
+
+      const registerResponse = await request(app)
+        .post('/api/v1/auth/register')
+        .send(newUserData);
+
+      const newUserToken = registerResponse.body.data.token;
+
+      const response = await request(app)
+        .get('/api/v1/interactions')
+        .set('Authorization', `Bearer ${newUserToken}`)
+        .expect(200);
+
+      expect(response.body.data.length).toBe(0);
+      expect(response.body.pagination.totalCount).toBe(0);
+      expect(response.body.stats.totalViews).toBe(0);
+      expect(response.body.stats.totalLikes).toBe(0);
+      expect(response.body.stats.totalShares).toBe(0);
+    });
+  });
+
   describe('Interaction data integrity', () => {
     it('should store interaction with correct user ID from token', async () => {
       const interactionData = {
