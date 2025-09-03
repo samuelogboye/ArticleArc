@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Interaction } from '../models/Interaction';
 import { Article } from '../models/Article';
-import { interactionValidation, paginationValidation } from '../utils/validation';
+import { interactionValidation, interactionQueryValidation } from '../utils/validation';
 import { parsePaginationQuery, createPaginationMeta } from '../utils/pagination';
 import { AuthRequest, ApiResponse } from '../types';
 
@@ -375,14 +375,14 @@ export const getUserInteractions = async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Validate pagination parameters
-    const { error: paginationError } = paginationValidation.validate(req.query);
+    // Validate query parameters (pagination + filters)
+    const { error: queryError } = interactionQueryValidation.validate(req.query);
     
-    if (paginationError) {
+    if (queryError) {
       res.status(400).json({
         success: false,
         message: 'Invalid query parameters',
-        error: paginationError.details[0].message,
+        error: queryError.details[0].message,
       } as ApiResponse);
       return;
     }
@@ -392,39 +392,22 @@ export const getUserInteractions = async (req: Request, res: Response): Promise<
     // Build query filters
     const filters: any = { userId: user._id };
     
-    // Filter by interaction type if provided
+    // Filter by interaction type if provided (already validated by Joi)
     if (req.query.interactionType) {
-      const interactionType = req.query.interactionType as string;
-      if (!['view', 'like', 'share'].includes(interactionType)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid query parameters',
-          error: '"interactionType" must be one of [view, like, share]',
-        } as ApiResponse);
-        return;
-      }
-      filters.interactionType = interactionType;
+      filters.interactionType = req.query.interactionType as string;
     }
     
-    // Filter by article ID if provided
+    // Filter by article ID if provided (already validated by Joi)
     if (req.query.articleId) {
-      const articleId = req.query.articleId as string;
-      if (!/^[0-9a-fA-F]{24}$/.test(articleId)) {
-        res.status(400).json({
-          success: false,
-          message: 'Invalid query parameters',
-          error: 'Invalid article ID format',
-        } as ApiResponse);
-        return;
-      }
-      filters.articleId = articleId;
+      filters.articleId = req.query.articleId as string;
     }
 
     // Execute queries in parallel for performance
     const [interactions, total, stats] = await Promise.all([
-      // Get paginated interactions with populated data
+      // Get paginated interactions with populated data (exclude userId for privacy)
       Interaction.find(filters)
         .populate('articleId', 'title author tags summary')
+        .select('-userId -__v')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -433,9 +416,9 @@ export const getUserInteractions = async (req: Request, res: Response): Promise<
       // Get total count for pagination
       Interaction.countDocuments(filters),
       
-      // Get interaction statistics for the user
+      // Get interaction statistics for the user with same filters
       Interaction.aggregate([
-        { $match: { userId: user._id } },
+        { $match: filters },
         {
           $group: {
             _id: '$interactionType',
