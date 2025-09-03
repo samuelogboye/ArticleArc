@@ -226,7 +226,7 @@ describe('Articles', () => {
       expect(response.body.pagination).toBeDefined();
       expect(response.body.pagination.page).toBe(1);
       expect(response.body.pagination.limit).toBe(10);
-      expect(response.body.pagination.total).toBe(15);
+      expect(response.body.pagination.totalCount).toBe(15);
       expect(response.body.pagination.totalPages).toBe(2);
       expect(response.body.pagination.hasNext).toBe(true);
       expect(response.body.pagination.hasPrev).toBe(false);
@@ -286,7 +286,7 @@ describe('Articles', () => {
         .expect(200);
 
       expect(response.body.data).toEqual([]);
-      expect(response.body.pagination.total).toBe(0);
+      expect(response.body.pagination.totalCount).toBe(0);
       expect(response.body.pagination.totalPages).toBe(0);
     });
 
