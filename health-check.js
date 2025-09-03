@@ -110,11 +110,28 @@ const runHealthCheck = async () => {
     console.log('');
   }
   
+  // Special check for Swagger spec paths
+  console.log('🔍 Checking Swagger specification...');
+  try {
+    const swaggerResult = await checkEndpoint(`${baseUrl}/api/v1/swagger-spec`);
+    if (swaggerResult.success && swaggerResult.data) {
+      if (swaggerResult.data.paths && Object.keys(swaggerResult.data.paths).length > 0) {
+        console.log(`✅ Swagger spec contains ${Object.keys(swaggerResult.data.paths).length} API paths`);
+        console.log('🎉 This should fix the Swagger UI routes display!\n');
+      } else {
+        console.log('❌ Swagger spec has no paths - this explains the empty Swagger UI\n');
+      }
+    }
+  } catch (error) {
+    console.log('⚠️  Could not check Swagger spec details\n');
+  }
+  
   console.log('💡 Troubleshooting tips:');
   console.log('  - Ensure server is running and accessible');
   console.log('  - Check firewall/security group settings');
   console.log('  - Verify environment variables are set');
   console.log('  - Check server logs for errors');
+  console.log('  - After deployment, test: curl https://articlearcapi.samuelogboye.com/api/v1/swagger-spec');
 };
 
 if (require.main === module) {

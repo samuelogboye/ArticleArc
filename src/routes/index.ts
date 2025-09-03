@@ -73,8 +73,28 @@ router.get('/health', (req, res) => {
 
 // Swagger spec endpoint for debugging
 router.get('/swagger-spec', (req, res) => {
-  const { specs } = require('../config/swagger');
-  res.status(200).json(specs);
+  try {
+    const { specs } = require('../config/swagger');
+    
+    res.status(200).json({
+      success: true,
+      paths: Object.keys(specs.paths || {}),
+      pathCount: Object.keys(specs.paths || {}).length,
+      info: specs.info,
+      servers: specs.servers,
+      environment: process.env.NODE_ENV,
+      dirname: __dirname,
+      spec: specs
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error?.message || 'Unknown error',
+      stack: error?.stack,
+      environment: process.env.NODE_ENV,
+      dirname: __dirname
+    });
+  }
 });
 
 export default router;

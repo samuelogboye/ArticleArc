@@ -1,5 +1,7 @@
 import swaggerJSDoc from 'swagger-jsdoc';
+import path from 'path';
 import { config } from './index';
+import { manualSwaggerSpec } from './swagger-manual';
 
 // Dynamic server URL based on environment
 const getServerUrl = (): string => {
@@ -292,9 +294,41 @@ const options: swaggerJSDoc.Options = {
     ],
   },
   apis: [
+    // Use absolute paths for better reliability
+    path.join(__dirname, '../routes/*.ts'),
+    path.join(__dirname, '../controllers/*.ts'),
+    path.join(__dirname, '../routes/*.js'),
+    path.join(__dirname, '../controllers/*.js'),
+    // Also try relative to project root
     './src/routes/*.ts',
     './src/controllers/*.ts',
+    './dist/routes/*.js',
+    './dist/controllers/*.js',
   ],
 };
 
-export const specs = swaggerJSDoc(options);
+// Generate specs from JSDoc comments
+let specs;
+try {
+  specs = swaggerJSDoc(options);
+  
+  // Check if we got any paths from JSDoc scanning
+  if (!specs.paths || Object.keys(specs.paths).length === 0) {
+    console.warn('⚠️  No paths found in JSDoc scanning, using manual specification');
+    // Use manual spec but preserve any JSDoc info if available
+    specs = {
+      ...specs,
+      ...manualSwaggerSpec,
+      // Merge servers to use the correct production URL
+      servers: manualSwaggerSpec.servers,
+      paths: manualSwaggerSpec.paths
+    };
+  } else {
+    console.log(`✅ Generated Swagger spec with ${Object.keys(specs.paths).length} paths`);
+  }
+} catch (error) {
+  console.error('❌ Error generating Swagger spec from JSDoc, falling back to manual spec:', error);
+  specs = manualSwaggerSpec;
+}
+
+export { specs };
