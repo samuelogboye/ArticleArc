@@ -54,7 +54,9 @@ export interface ApiResponse<T = any> {
   pagination?: {
     page: number;
     limit: number;
-    total: number;
+    totalCount: number;
     totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
   };
 }
