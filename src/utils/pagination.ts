@@ -9,7 +9,7 @@ export interface PaginationParams {
 export interface PaginationMeta {
   page: number;
   limit: number;
-  total: number;
+  totalCount: number;
   totalPages: number;
   hasNext: boolean;
   hasPrev: boolean;
@@ -40,14 +40,14 @@ export const parsePaginationQuery = (query: PaginationQuery): PaginationParams =
 export const createPaginationMeta = (
   page: number,
   limit: number,
-  total: number
+  totalCount: number
 ): PaginationMeta => {
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = Math.ceil(totalCount / limit);
   
   return {
     page,
     limit,
-    total,
+    totalCount,
     totalPages,
     hasNext: page < totalPages,
     hasPrev: page > 1,
