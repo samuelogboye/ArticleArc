@@ -69,6 +69,16 @@ export const paginationValidation = Joi.object({
   offset: Joi.number().integer().min(0).optional(),
 });
 
+export const interactionQueryValidation = Joi.object({
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
+  offset: Joi.number().integer().min(0).optional(),
+  interactionType: Joi.string().valid('view', 'like', 'share').optional(),
+  articleId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional().messages({
+    'string.pattern.base': 'Invalid article ID format',
+  }),
+});
+
 export const idValidation = Joi.object({
   id: Joi.string()
     .pattern(/^[0-9a-fA-F]{24}$/)
